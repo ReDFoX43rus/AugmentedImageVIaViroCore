@@ -1,0 +1,2 @@
+include ':app', ':arcore_client', ':gvr_common', ':viro_core'
+rootProject.name='ViroCoreTest'
