@@ -1,13 +1,12 @@
 package com.liberaid.virocoretest
 
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.net.Uri
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import android.util.Log
 import com.viro.core.*
+import com.viro.core.Vector
+import java.util.*
 
 class MainActivity : AppCompatActivity() {
 
@@ -20,17 +19,11 @@ class MainActivity : AppCompatActivity() {
         viroView = ViroViewARCore(this, object : ViroViewARCore.StartupListener {
             override fun onSuccess() {
                 arScene = ARScene()
-                val imageId = setupImageRecognition()
-                arScene.setListener( object : ARSetupSceneListener() {
-                    override fun onAnchorFound(p0: ARAnchor?, p1: ARNode?) {
-                        super.onAnchorFound(p0, p1)
-
-                        if(p0?.anchorId == imageId)
-                            playVideo(p1!!)
-                    }
-                })
-
                 viroView.scene = arScene
+
+                arScene.setListener(ARSetupSceneListener {
+                    setupScene()
+                })
             }
 
             override fun onFailure(p0: ViroViewARCore.StartupError?, p1: String?) {
@@ -41,44 +34,69 @@ class MainActivity : AppCompatActivity() {
         setContentView(viroView)
     }
 
-    private fun playVideo(node: ARNode) {
-        val videoTexture = VideoTexture(viroView.viroContext, Uri.parse("file:///android_asset/just_do_it.mp4"))
+    private fun setupScene() {
+        setupLights()
+        createObjectAtPosition(Vector(0f, 0f, -1f))
+    }
 
-        val material = Material().apply {
-            diffuseTexture = videoTexture
-            chromaKeyFilteringColor = Color.GREEN
-            isChromaKeyFilteringEnabled = true
+    private fun setupLights() {
+        // Add some lights to the scene; this will give the Android's some nice illumination.
+        val rootNode = arScene.getRootNode()
+        val lightPositions = ArrayList<Vector>()
+        lightPositions.add(Vector(-10f, 10f, 1f))
+        lightPositions.add(Vector(10f, 10f, 1f))
+
+        val intensity = 300f
+        val lightColors = mutableListOf<Int>()
+        lightColors.add(Color.WHITE)
+        lightColors.add(Color.WHITE)
+
+        for (i in lightPositions.indices) {
+            val light = OmniLight()
+            light.color = lightColors.get(i).toLong()
+            light.position = lightPositions[i]
+            light.attenuationStartDistance = 20f
+            light.attenuationEndDistance = 30f
+            light.intensity = intensity
+            rootNode.addLight(light)
         }
-
-        val scale = 1f
-        val surface = Quad(1.6f * scale, .9f * scale)
-        surface.materials = mutableListOf(material)
-
-        node.addChildNode(Node().apply {
-            setRotation(Quaternion.makeRotationFromTo(Vector(0f, 1f, 0f), Vector(0f, 0f, -1f)))
-            setScale(Vector(1f, 1f, 1f).scale(.15f))
-            setPosition(Vector(-.05f, 0f, 0f))
-            geometry = surface
-        })
-
-        videoTexture.loop = true
-        videoTexture.play()
-        videoTexture.isMuted = true
     }
 
-    private fun setupImageRecognition(): String {
-        val template = getBitmapFromAssets("just_do_it_transparent.png")
-        val imageTarget = ARImageTarget(template, ARImageTarget.Orientation.Up, .1f)
-        Log.d("JUSTDOIT", "imageTarget=${imageTarget.id}")
+    private fun createObjectAtPosition(position: Vector) {
+        val object3D = Object3D()
+        object3D.setPosition(position)
+        object3D.setRotation(Quaternion.makeRotationFromTo(Vector(0f, 1f, 0f), Vector(0f, 0f, -1f)))
 
-        arScene.addARImageTarget(imageTarget)
+        val scale = .08f
+        object3D.setScale(Vector(scale, scale, scale))
 
-        return imageTarget.id
-    }
+        arScene.rootNode.addChildNode(object3D)
 
-    private fun getBitmapFromAssets(filename: String): Bitmap {
-        val inputStream = assets.open(filename)
-        return BitmapFactory.decodeStream(inputStream)
+        object3D.loadModel(
+            viroView.getViroContext(),
+            Uri.parse("file:///android_asset/tv.obj"),
+            Object3D.Type.OBJ,
+            object : AsyncObject3DListener {
+                override fun onObject3DLoaded(`object`: Object3D, type: Object3D.Type) {
+                    val videoTexture = VideoTexture(viroView.viroContext, Uri.parse("file:///android_asset/just_do_it.mp4"))
+
+                    val material = Material().apply {
+                        diffuseTexture = videoTexture
+                        chromaKeyFilteringColor = Color.GREEN
+                        isChromaKeyFilteringEnabled = false
+                    }
+
+                    object3D.geometry.materials = Arrays.asList(material)
+
+                    videoTexture.apply {
+                        isMuted = true
+                        loop = true
+                        play()
+                    }
+                }
+
+                override fun onObject3DFailed(s: String) {}
+            })
     }
 
     override fun onStart() {

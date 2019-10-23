@@ -6,13 +6,15 @@ import com.viro.core.ARNode
 import com.viro.core.ARScene
 import com.viro.core.Vector
 
-open class ARSetupSceneListener() : ARScene.Listener {
+open class ARSetupSceneListener(private val onSetup: () -> Unit) : ARScene.Listener {
     private var inited = false
 
     override fun onTrackingInitialized() {}
     override fun onTrackingUpdated(trackingState: ARScene.TrackingState?, trackingStateReason: ARScene.TrackingStateReason?) {
         if(trackingState != null && trackingState == ARScene.TrackingState.NORMAL && !inited){
             inited = true
+            Log.d("BOTTLE", "Ar Scene inited")
+            onSetup()
         }
     }
     override fun onAmbientLightUpdate(p0: Float, p1: Vector?) {}
