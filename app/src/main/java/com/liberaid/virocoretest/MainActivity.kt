@@ -9,7 +9,9 @@ import android.os.SystemClock
 import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import com.viro.core.*
+import com.viro.core.Vector
 import timber.log.Timber
+import java.util.*
 
 
 class MainActivity : AppCompatActivity() {
@@ -28,6 +30,8 @@ class MainActivity : AppCompatActivity() {
                     override fun onAnchorFound(p0: ARAnchor?, p1: ARNode?) {
                         super.onAnchorFound(p0, p1)
 
+                        setupLights()
+                        createObjectAtPosition(Vector(0f, 0f, -1f))
                         if(p0?.anchorId == imageId)
                             placeModel(p1!!)
                     }
@@ -44,15 +48,62 @@ class MainActivity : AppCompatActivity() {
         setContentView(viroView)
     }
 
+    private fun setupLights() {
+        // Add some lights to the scene; this will give the Android's some nice illumination.
+        val rootNode = arScene.getRootNode()
+        val lightPositions = ArrayList<Vector>()
+        lightPositions.add(Vector(-10f, 10f, 1f))
+        lightPositions.add(Vector(10f, 10f, 1f))
+
+        val intensity = 300f
+        val lightColors = mutableListOf<Int>()
+        lightColors.add(Color.WHITE)
+        lightColors.add(Color.WHITE)
+
+        for (i in lightPositions.indices) {
+            val light = OmniLight()
+            light.color = lightColors.get(i).toLong()
+            light.position = lightPositions[i]
+            light.attenuationStartDistance = 20f
+            light.attenuationEndDistance = 30f
+            light.intensity = intensity
+            rootNode.addLight(light)
+        }
+    }
+
+    private fun createObjectAtPosition(position: Vector) {
+        val object3D = Object3D()
+        object3D.setPosition(position)
+        object3D.setRotation(Quaternion.makeRotationFromTo(Vector(0f, 1f, 0f), Vector(0f, 0f, -1f)))
+
+        val scale = .08f
+        object3D.setScale(Vector(scale, scale, scale))
+
+        arScene.rootNode.addChildNode(object3D)
+
+        val filename = "rectangle.glb"
+        val type = Object3D.Type.GLB
+
+        object3D.loadModel(
+            viroView.getViroContext(),
+            Uri.parse("file:///android_asset/$filename"),
+            type,
+            object : AsyncObject3DListener {
+                override fun onObject3DLoaded(`object`: Object3D, type: Object3D.Type) {}
+                override fun onObject3DFailed(s: String) {}
+            })
+    }
+
     private fun placeModel(node: ARNode) {
         Timber.d("Image detected=${SystemClock.elapsedRealtime()}")
 
-        val glbFilename = "rectangle.glb"
+        val filename = "rectangle.obj"
+        val type = Object3D.Type.OBJ
 
         Object3D().apply {
             node.addChildNode(this)
 
-            loadModel(viroView.viroContext, Uri.parse("file:///android_asset/$glbFilename"), Object3D.Type.GLB, object : AsyncObject3DListener {
+            loadModel(viroView.viroContext, Uri.parse("file:///android_asset/$filename"), type, object : AsyncObject3DListener {
                 override fun onObject3DLoaded(p0: Object3D?, p1: Object3D.Type?) {
                     Timber.d("Model loaded")
                 }
@@ -67,29 +118,6 @@ class MainActivity : AppCompatActivity() {
             val ambient = AmbientLight(Color.WHITE.toLong(), 1000.0f)
             addLight(ambient)
         }
-
-        /*val videoTexture = VideoTexture(viroView.viroContext, Uri.parse("file:///android_asset/just_do_it.mp4"))
-
-        val material = Material().apply {
-            diffuseTexture = videoTexture
-            chromaKeyFilteringColor = Color.GREEN
-            isChromaKeyFilteringEnabled = true
-        }
-
-        val scale = 1f
-        val surface = Quad(1.6f * scale, .9f * scale)
-        surface.materials = mutableListOf(material)
-
-        node.addChildNode(Node().apply {
-            setRotation(Quaternion.makeRotationFromTo(Vector(0f, 1f, 0f), Vector(0f, 0f, -1f)))
-            setScale(Vector(1f, 1f, 1f).scale(.15f))
-            setPosition(Vector(-.05f, 0f, 0f))
-            geometry = surface
-        })
-
-        videoTexture.loop = true
-        videoTexture.play()
-        videoTexture.isMuted = true*/
     }
 
     private fun setupImageRecognition(): String {
