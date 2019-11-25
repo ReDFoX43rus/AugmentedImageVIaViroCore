@@ -9,9 +9,6 @@
           <set>
             <option value="$PROJECT_DIR$" />
             <option value="$PROJECT_DIR$/app" />
-            <option value="$PROJECT_DIR$/arcore_client" />
-            <option value="$PROJECT_DIR$/gvr_common" />
-            <option value="$PROJECT_DIR$/viro_core" />
           </set>
         </option>
         <option name="resolveModulePerSourceSet" value="false" />

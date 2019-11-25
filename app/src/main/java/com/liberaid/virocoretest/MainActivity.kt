@@ -31,7 +31,8 @@ class MainActivity : AppCompatActivity() {
                         super.onAnchorFound(p0, p1)
 
                         setupLights()
-                        createObjectAtPosition(Vector(0f, 0f, -1f))
+                        createObjectAtPosition(Vector(0f, 0f, -1f), false)
+                        createObjectAtPosition(Vector(0f, 0f, -1f), true)
                         if(p0?.anchorId == imageId)
                             placeModel(p1!!)
                     }
@@ -71,7 +72,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun createObjectAtPosition(position: Vector) {
+    private fun createObjectAtPosition(position: Vector, animated: Boolean) {
         val object3D = Object3D()
         object3D.setPosition(position)
         object3D.setRotation(Quaternion.makeRotationFromTo(Vector(0f, 1f, 0f), Vector(0f, 0f, -1f)))
@@ -81,16 +82,22 @@ class MainActivity : AppCompatActivity() {
 
         arScene.rootNode.addChildNode(object3D)
 
-        val filename = "rectangle.glb"
-        val type = Object3D.Type.GLB
+        val filename = if(animated) "rect2_animated.gltf" else "rectangle.gltf"
+        val type = Object3D.Type.GLTF
+
+        Timber.d("Create .glb, animated=$animated")
 
         object3D.loadModel(
             viroView.getViroContext(),
             Uri.parse("file:///android_asset/$filename"),
             type,
             object : AsyncObject3DListener {
-                override fun onObject3DLoaded(`object`: Object3D, type: Object3D.Type) {}
-                override fun onObject3DFailed(s: String) {}
+                override fun onObject3DLoaded(`object`: Object3D, type: Object3D.Type) {
+                    Timber.d(".glb loaded, animated=$animated")
+                }
+                override fun onObject3DFailed(s: String) {
+                    Timber.d(".glb failed to load, animated=$animated, err=$s")
+                }
             })
     }
 
