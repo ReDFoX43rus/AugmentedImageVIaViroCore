@@ -10,6 +10,9 @@ import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import com.viro.core.*
 import com.viro.core.Vector
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import timber.log.Timber
 import java.util.*
 
@@ -31,8 +34,9 @@ class MainActivity : AppCompatActivity() {
                         super.onAnchorFound(p0, p1)
 
                         setupLights()
-                        createObjectAtPosition(Vector(0f, 0f, -1f), false)
-                        createObjectAtPosition(Vector(0f, 0f, -1f), true)
+//                        createObjectAtPosition(Vector(0f, 0f, -1f), false)
+//                        createObjectAtPosition(Vector(0f, 0f, -1f), true)
+                        createMenAtPosition(Vector(0f, 0f, -1f))
                         if(p0?.anchorId == imageId)
                             placeModel(p1!!)
                     }
@@ -103,6 +107,57 @@ class MainActivity : AppCompatActivity() {
                     Timber.d(".glb failed to load, animated=$animated, err=$s")
                 }
             })
+    }
+
+    private fun createMenAtPosition(position: Vector) {
+        val men = (1..80).map {
+            Object3D().apply {
+                setPosition(position)
+
+                val scale = 0.00f
+                setScale(Vector(scale, scale, scale))
+
+                arScene.rootNode.addChildNode(this)
+
+                val filename = if(it < 10)
+                    "man_obj/m_27-T1_00000$it.obj"
+                else "man_obj/m_27-T1_0000$it.obj"
+                val type = Object3D.Type.OBJ
+
+                loadModel(viroView.viroContext, Uri.parse("file:///android_asset/$filename"), type, object : AsyncObject3DListener {
+                    override fun onObject3DLoaded(p0: Object3D?, p1: Object3D.Type?) {
+                        Timber.d("Loaded $filename")
+                    }
+
+                    override fun onObject3DFailed(p0: String?) {
+                        Timber.d("$filename failed to load")
+                    }
+                })
+
+            }
+        }
+
+        val zeroScale = Vector(0f, 0f, 0f)
+        val sizeScale = Vector(0.1f, 0.1f, 0.1f)
+
+        GlobalScope.launch {
+            var current = 0
+            while(true){
+                for(i in men.indices){
+                    if(i != current){
+                        men[i].setScale(zeroScale)
+                    } else {
+                        men[i].setScale(sizeScale)
+                    }
+                }
+
+                Timber.d("Activated man #$current")
+
+                delay(100)
+                current++
+                current %= men.size
+            }
+        }
     }
 
     private fun placeModel(node: ARNode) {
