@@ -82,7 +82,7 @@ class MainActivity : AppCompatActivity() {
 
         arScene.rootNode.addChildNode(object3D)
 
-        val filename = if(animated) "rect2_animated.gltf" else "rectangle.gltf"
+        val filename = if(animated) "rect2_separate.gltf" else "rectangle.gltf"
         val type = Object3D.Type.GLTF
 
         Timber.d("Create .glb, animated=$animated")
