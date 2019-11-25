@@ -6,8 +6,10 @@ import android.graphics.Color
 import android.net.Uri
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.os.SystemClock
 import android.util.Log
 import com.viro.core.*
+import timber.log.Timber
 
 class MainActivity : AppCompatActivity() {
 
@@ -42,6 +44,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun playVideo(node: ARNode) {
+        Timber.d("Image detected=${SystemClock.elapsedRealtime()}")
+
         val videoTexture = VideoTexture(viroView.viroContext, Uri.parse("file:///android_asset/just_do_it.mp4"))
 
         val material = Material().apply {
