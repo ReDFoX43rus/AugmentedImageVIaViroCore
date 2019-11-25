@@ -77,13 +77,14 @@ class MainActivity : AppCompatActivity() {
         object3D.setPosition(position)
         object3D.setRotation(Quaternion.makeRotationFromTo(Vector(0f, 1f, 0f), Vector(0f, 0f, -1f)))
 
-        val scale = .08f
+        val scale = .2f
         object3D.setScale(Vector(scale, scale, scale))
+        object3D.setRotation(Quaternion.makeRotationFromTo(Vector(0f, 0f, 1f), Vector(0f, 1f, 0f)))
 
         arScene.rootNode.addChildNode(object3D)
 
-        val filename = if(animated) "rect2_separate.gltf" else "rectangle.gltf"
-        val type = Object3D.Type.GLTF
+        val filename = if(animated) "rectangle_animated.glb" else "rectangle.glb"
+        val type = Object3D.Type.GLB
 
         Timber.d("Create .glb, animated=$animated")
 
@@ -94,6 +95,9 @@ class MainActivity : AppCompatActivity() {
             object : AsyncObject3DListener {
                 override fun onObject3DLoaded(`object`: Object3D, type: Object3D.Type) {
                     Timber.d(".glb loaded, animated=$animated")
+
+                    val animations = `object`.animationKeys
+                    Timber.d("Animations=$animations")
                 }
                 override fun onObject3DFailed(s: String) {
                     Timber.d(".glb failed to load, animated=$animated, err=$s")
