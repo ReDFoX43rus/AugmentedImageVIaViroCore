@@ -4,12 +4,13 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.net.Uri
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.os.SystemClock
 import android.util.Log
+import androidx.appcompat.app.AppCompatActivity
 import com.viro.core.*
 import timber.log.Timber
+
 
 class MainActivity : AppCompatActivity() {
 
@@ -28,7 +29,7 @@ class MainActivity : AppCompatActivity() {
                         super.onAnchorFound(p0, p1)
 
                         if(p0?.anchorId == imageId)
-                            playVideo(p1!!)
+                            placeModel(p1!!)
                     }
                 })
 
@@ -43,10 +44,31 @@ class MainActivity : AppCompatActivity() {
         setContentView(viroView)
     }
 
-    private fun playVideo(node: ARNode) {
+    private fun placeModel(node: ARNode) {
         Timber.d("Image detected=${SystemClock.elapsedRealtime()}")
 
-        val videoTexture = VideoTexture(viroView.viroContext, Uri.parse("file:///android_asset/just_do_it.mp4"))
+        val glbFilename = "rectangle.glb"
+
+        Object3D().apply {
+            node.addChildNode(this)
+
+            loadModel(viroView.viroContext, Uri.parse("file:///android_asset/$glbFilename"), Object3D.Type.GLB, object : AsyncObject3DListener {
+                override fun onObject3DLoaded(p0: Object3D?, p1: Object3D.Type?) {
+                    Timber.d("Model loaded")
+                }
+
+                override fun onObject3DFailed(p0: String?) {
+                    Timber.d("Error loading model")
+                }
+            })
+
+            Timber.d("Model is attached to node")
+
+            val ambient = AmbientLight(Color.WHITE.toLong(), 1000.0f)
+            addLight(ambient)
+        }
+
+        /*val videoTexture = VideoTexture(viroView.viroContext, Uri.parse("file:///android_asset/just_do_it.mp4"))
 
         val material = Material().apply {
             diffuseTexture = videoTexture
@@ -67,7 +89,7 @@ class MainActivity : AppCompatActivity() {
 
         videoTexture.loop = true
         videoTexture.play()
-        videoTexture.isMuted = true
+        videoTexture.isMuted = true*/
     }
 
     private fun setupImageRecognition(): String {
