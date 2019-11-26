@@ -10,14 +10,17 @@ import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import com.viro.core.*
 import com.viro.core.Vector
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import timber.log.Timber
 import java.util.*
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
+import kotlin.coroutines.suspendCoroutine
 
+class MainActivity : AppCompatActivity(), CoroutineScope {
 
-class MainActivity : AppCompatActivity() {
+    private val job = Job()
+    override val coroutineContext = job + Dispatchers.Default
 
     private lateinit var viroView: ViroView
     private lateinit var arScene: ARScene
@@ -110,37 +113,42 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun createMenAtPosition(position: Vector) {
-        val men = (1..80).map {
-            Object3D().apply {
-                setPosition(position)
-
-                val scale = 0.00f
-                setScale(Vector(scale, scale, scale))
-
-                arScene.rootNode.addChildNode(this)
-
-                val filename = if(it < 10)
-                    "man_obj/m_27-T1_00000$it.obj"
-                else "man_obj/m_27-T1_0000$it.obj"
-                val type = Object3D.Type.OBJ
-
-                loadModel(viroView.viroContext, Uri.parse("file:///android_asset/$filename"), type, object : AsyncObject3DListener {
-                    override fun onObject3DLoaded(p0: Object3D?, p1: Object3D.Type?) {
-                        Timber.d("Loaded $filename")
-                    }
-
-                    override fun onObject3DFailed(p0: String?) {
-                        Timber.d("$filename failed to load")
-                    }
-                })
-
-            }
-        }
 
         val zeroScale = Vector(0f, 0f, 0f)
-        val sizeScale = Vector(0.1f, 0.1f, 0.1f)
 
-        GlobalScope.launch {
+        val scale = 0.3f
+        val sizeScale = Vector(scale, scale, scale)
+
+        launchCatching({
+            val men = (1..80).map {
+                Object3D().apply {
+                    setPosition(position)
+
+                    setScale(zeroScale)
+
+                    arScene.rootNode.addChildNode(this)
+
+                    val filename = if(it < 10)
+                        "man_obj/m_27-T1_00000$it.obj"
+                    else "man_obj/m_27-T1_0000$it.obj"
+                    val type = Object3D.Type.OBJ
+
+                    suspendCoroutine<Unit> {
+                        loadModel(viroView.viroContext, Uri.parse("file:///android_asset/$filename"), type, object : AsyncObject3DListener {
+                            override fun onObject3DLoaded(p0: Object3D?, p1: Object3D.Type?) {
+                                Timber.d("Loaded $filename")
+                                it.resume(Unit)
+                            }
+
+                            override fun onObject3DFailed(p0: String?) {
+                                Timber.d("$filename failed to load")
+                                it.resumeWithException(RuntimeException("$filename failed to load"))
+                            }
+                        })
+                    }
+                }
+            }
+
             var current = 0
             while(true){
                 for(i in men.indices){
@@ -153,11 +161,13 @@ class MainActivity : AppCompatActivity() {
 
                 Timber.d("Activated man #$current")
 
-                delay(100)
+                delay(50)
                 current++
                 current %= men.size
             }
-        }
+        }, { _, t ->
+            throw t
+        })
     }
 
     private fun placeModel(node: ARNode) {
